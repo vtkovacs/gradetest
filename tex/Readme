@@ -1,0 +1,7 @@
+These are the latex files used to produce the pdf versions of the test files.
+Run pdflatex twice on a file to produce a usable pdf ie:
+
+pdflatex tenquestion.tex
+pdflatex tenquestion.tex
+
+to produce tenquestion.pdf - there will be a multitude of warnings...

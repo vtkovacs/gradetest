@@ -1,0 +1,94 @@
+\documentclass[english,pagemark,stamp,final,letterpaper,no_print_survey_id,style=classic]{gradetest}
+\usepackage[utf8]{inputenc}
+\usepackage{multicol}
+\usepackage{lmodern}
+\geometry{hmargin=10mm}
+\geometry{vmargin=18mm}
+\fontfamily{lmss}\selectfont
+\setlength{\edgeleftmargin}{6mm}
+\setlength{\edgerightmargin}{6mm}
+\setlength{\edgetopmargin}{6mm}
+\setlength{\edgebottommargin}{6mm}
+
+\begin{document}
+\fontfamily{lmss}\selectfont
+\title{  }
+\begin{center}
+		\checkedbox \quad Put an X in the box to select your answer.
+		\quad \correctedbox  \quad Fill the box to "unselect" an answer. \\
+\vspace{10pt}
+\begin{tabularx}{\textwidth}{ll}
+	Name:{\line(1,0){250}} & Date:\line(1,0){200} 
+\end{tabularx}
+\end{center}
+\begin{questionnaire}[noinfo]
+\setlength{\checkboxsize}{3mm}
+	\refstepcounter{section}
+	\begin{multicols*}{3}
+
+		\def \groupwidth {30mm}
+		\setlength{\tabcolsep}{0pt}
+		\begin{choicegroup}{Last Name, First Initial}
+			\groupaddchoice{\huge$\_$}
+			\groupaddchoice{\huge$\_$}
+			\groupaddchoice{\huge$\_$}
+			\groupaddchoice{\huge$\_$}
+			\groupaddchoice{\huge$\_$}
+			\groupaddchoice{FI:\huge$\_$}
+			\def\spaceafterhead{\vspace{2mm}}
+			
+			\choiceline{A}
+			\choiceline{B}
+			\choiceline{C}
+			\choiceline{D}
+			\choiceline{E}
+			\choiceline{F}
+			\choiceline{G}
+			\choiceline{H}
+			\choiceline{I}
+			\choiceline{J}
+			\choiceline{K}
+			\choiceline{L}
+			\choiceline{M}
+			\choiceline{N}
+			\choiceline{O}
+			\choiceline{P}
+			\choiceline{Q}
+			\choiceline{R}
+			\choiceline{S}
+			\choiceline{T}
+			\choiceline{U}
+			\choiceline{V}
+			\choiceline{W}
+			\choiceline{X}
+			\choiceline{Y}
+			\choiceline{Z}
+		\end{choicegroup}
+
+		\setcounter{section}{2}
+		\setcounter{subsection}{0}
+		\def \groupwidth {18mm}
+		\begin{choicegroup}{Answers\hspace{3cm}}
+			\groupaddchoice{A}
+			\groupaddchoice{B}
+			\groupaddchoice{C}
+			\groupaddchoice{D}
+			\groupaddchoice{E}
+			\choiceline{1}
+			\choiceline{2}
+			\choiceline{3}
+			\choiceline{4}
+			\choiceline{5}
+			\choiceline{6}
+			\choiceline{7}
+			\choiceline{8}
+			\choiceline{9}
+			\choiceline{10}
+
+		\end{choicegroup}
+		
+	\end{multicols*}
+
+\end{questionnaire}
+\end{document}
+

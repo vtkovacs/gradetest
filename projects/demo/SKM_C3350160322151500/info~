@@ -1,0 +1,23 @@
+[sdaps]
+title = 
+global_id = 
+
+[info]
+Author = Dartmouth Physics and Astronomy
+Date = 08.26.15
+
+[defs]
+# These values are not read back, they exist for information only!
+paper_width = 215.9
+paper_height = 279.4
+print_questionnaire_id = False
+print_survey_id = False
+style = classic
+duplex = False
+checkmode = checkcorrect
+
+[questionnaire]
+# These values are not read back, they exist for information only!
+page_count = 1
+survey_id = 0
+
