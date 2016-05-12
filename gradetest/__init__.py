@@ -196,7 +196,7 @@ class Grades(object):
         test.questionnaire.score = 0
         test.questionnaire.answers = []
         test.names.append(fullName)
-        test.byName[fullName] = {'answers':[], 'quality':quality, 'score':0, 'page_index':test.index }
+        test.byName[fullName] = {'answers':[], 'marked_answer':[], 'quality':quality, 'score':0, 'page_index':test.index }
     #        test.ByName[fullName] = quality
         while len(questionBoxes) >= 5:
             answer = ''
@@ -225,9 +225,13 @@ class Grades(object):
             ncorrect = 0
             index = 0
             if len(test.byName[name]['answers']) > 0:
+                test.byName[name]['marked_answer'] = []
                 for answer in answers:
                     if answer != "-" and test.byName[name]['answers'][index] in answer:
                         ncorrect += 1
+                        test.byName[name]['marked_answer'].append(str.upper(test.byName[name]['answers'][index]))
+                    else:
+                        test.byName[name]['marked_answer'].append(str.lower(test.byName[name]['answers'][index]))
                     index += 1
             test.byName[name]['score'] = ncorrect
         return True
@@ -245,11 +249,13 @@ class Grades(object):
             answers = test.byName['answe r']['answers'] # find the answer key
         except:
             return ncorrect # no answer key
-            
+        test.byName[name]['marked_answer'] = []
         for answer in answers:
             if answer != "-" and test.byName[name]['answers'][index] in answer:
                 ncorrect += 1
-            index += 1
+                test.byName[name]['marked_answer'].append(str.upper(test.byName[name]['answers'][index]))
+            else:
+                test.byName[name]['marked_answer'].append(str.lower(test.byName[name]['answers'][index]))
         test.byName[name]['score'] = ncorrect
 
         return ncorrect
@@ -561,6 +567,7 @@ class GradeSetupWindow(object):
         os.chdir(self.test_dir)
         test = model.survey.Survey.load(self.test_dir)
         grades = Grades(test)
+        shared.grades = grades
         grades.test_dir = self.test_dir #  so we know where a future pdf/csv file might go
         for page in range(1, len(test.sheets)):
             test.index = page
@@ -639,6 +646,7 @@ class GradeSetupWindow(object):
             os.stat(self.test_dir + '/questionnaire.sdaps')
             test = model.survey.Survey.load(self.test_dir)
             grades = Grades(test)
+            shared.grades = grades
             for page in range(1, len(test.sheets)):
                 test.index = page
                 grades.gettest_name_answers(test)
@@ -664,6 +672,7 @@ class GradeSetupWindow(object):
             add_image(test, self.scan_file, test.defs.duplex, copy=False)
             # a place to store the grades
             grades = Grades(test)
+            shared.grades = grades
             num_pages = image.get_tiff_page_count(self.scan_file)
             # find checkmarks on each page and collect the names and answers
             for page in range(num_pages):
