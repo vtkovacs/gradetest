@@ -30,6 +30,7 @@ provider = None
 grades = None
 config_file = ".Grade"
 scan_date = "Unknown"
+mainwindow = None  # to be set with the MainWindow._window object
 
 home = os.path.expanduser('~')
 # saved in the config file - these are defaults
@@ -44,12 +45,6 @@ configs = {'template directory' : home + "/Grades/templates",
             'mainwindow height' : 72 * 11,
             'mainwindow x' : None,
             'mainwindow y' : None }
-
-
-#configs['grades directory'] = home + "/Grades"
-#configs['template directory'] = home + "/Grades/templates"
-#configs['project directory'] = home + "/Grades/projects"
-#configs['scan directory'] = home
 
 def popup(parent_window, message):
     popup_dialog = Gtk.MessageDialog(

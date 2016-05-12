@@ -59,13 +59,15 @@ def savepdf():
 #     content.append(headerTable)
     
     scores_table_data = [['Name', 'Score', 'Quality', 'Sheet', 'Verified']]
+
     for row in name_store:
         [name, score, quality, sheet, verified] = row
         if verified:
             verified_print = 'yes'
         else:
             verified_print = ''
-        scores_table_data.append([name, score, quality, str(sheet), verified_print])
+        scores_table_row = [name, score, quality, str(sheet), verified_print]
+        scores_table_data.append(scores_table_row)
     
     scoresTable = Table(scores_table_data, style = [('GRID',(0,0),(-1,-1),1,colors.gray)])
     content.append(scoresTable)
@@ -78,12 +80,24 @@ def savecsv():
         if overwrite != Gtk.ResponseType.YES:
             return
     supporting_info_print =  supporting_info
+    nquestions = len(shared.grades.test.byName['answe r']['marked_answer'])
+    correctByQuestion = [0] * nquestions
+    for name in shared.grades.test.byName:
+        if name != 'answe r':
+            for index in range(nquestions):
+                if str.isupper(shared.grades.test.byName[name]['marked_answer'][index]):
+                    correctByQuestion[index] += 1
     doc = open(csv_filename,'w')
     doc.write('"' + supporting_info_print + '"\n')
     doc.write('Template:, ' + shared.test_template +'\n')
     doc.write('Scanfile:, ' + shared.test_scanfile + ',Date scanned: ,' + str(shared.scan_date) + '\n')
-    doc.write('\nName,Score,Quality,Sheet,Verified\n')
-    
+    doc.write('\nName,Score,Quality,Sheet,Verified,Answers (correct: upper case)\n')
+    doc.write(' , , , , ,Question:')
+    for index in range(1, nquestions + 1):
+        doc.write(',' + str(index))   
+    doc.write('\n , , , , ,# Correct by question:')
+    for total in correctByQuestion:
+        doc.write(', ' + str(total))
     for row in name_store:
         [name, score, quality, sheet, verified] = row
         if verified:
@@ -91,6 +105,8 @@ def savecsv():
         else:
             verified_print = ''
             
-        doc.write(name + ',' + str(score) + ',' + quality + ',' + str(sheet) + ',' + verified_print +'\n')
-    
+        doc.write('\n' + name + ',' + str(score) + ',' + quality + ',' + str(sheet) + ',' + verified_print + ',')
+        for index in range(0, nquestions):
+            doc.write(',' + shared.grades.test.byName[name]['marked_answer'][index])
+    doc.write('\n')
     return
