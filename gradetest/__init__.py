@@ -256,6 +256,7 @@ class Grades(object):
                 test.byName[name]['marked_answer'].append(str.upper(test.byName[name]['answers'][index]))
             else:
                 test.byName[name]['marked_answer'].append(str.lower(test.byName[name]['answers'][index]))
+            index += 1
         test.byName[name]['score'] = ncorrect
 
         return ncorrect
