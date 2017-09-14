@@ -36,6 +36,7 @@ import signal
 import string
 import shutil
 import re
+import pickle
 
 from sdaps import model
 from sdaps import surface
@@ -195,8 +196,11 @@ class Grades(object):
         test.questionnaire.quality = quality
         test.questionnaire.score = 0
         test.questionnaire.answers = []
-        test.names.append(fullName)
-        test.byName[fullName] = {'answers':[], 'marked_answer':[], 'quality':quality, 'score':0, 'page_index':test.index }
+        if len(test.names) < test.index:
+            test.names.append(fullName)
+        else:
+            test.names[test.index - 1] = fullName
+        test.byName[fullName] = {'answers':[], 'marked_answer':[], 'quality':quality, 'score':0, 'page_index':test.index, 'name edited':False }
     #        test.ByName[fullName] = quality
         while len(questionBoxes) >= 5:
             answer = ''
@@ -205,10 +209,69 @@ class Grades(object):
                     answer += ans  # there may be more than one correct answer to a question
             if answer == '':  # no answer was given
                 answer = '-'
+                test.byName[fullName]['quality'] = quality - 1
+            if len(answer) > 1:
+                test.byName[fullName]['quality'] = quality - 1
             test.byName[fullName]['answers'].append(answer)
             test.questionnaire.answers.append(answer)
         return fullName
-        
+    
+    def gettest_answers(self, name):
+        """
+        get answers from the sheet boxes for name
+        boxIdNameIndex = 1    #section one of the tex output is the name
+        boxIdQuestionIndex = 2 #section two (or greater) of the tex output are questions
+        """    
+        boxIdNameIndex = 1  # section one of the tex output
+        boxIdQuestionIndex = 2  # section two of the tex output
+    
+        nameBoxes = []
+        questionBoxes = []
+        quality = 1.0
+        test = self.test
+        for qobject in test.questionnaire.qobjects:
+            if isinstance(qobject, model.questionnaire.Question):
+                # Only print data if an image for the page has been loaded
+                if test.sheet.get_page_image(qobject.page_number) is None:
+                    continue
+                for box in qobject.boxes:
+                    quality = min(quality, box.data.quality)
+                    if box.id[0] == boxIdNameIndex:
+                        nameBoxes.append(box.data.state)
+                    elif box.id[0] >= boxIdQuestionIndex:
+                        questionBoxes.append(box.data.state)
+                    else:
+                        print 'unknown section: ' + '_'.join([str(num) for num in box.id])
+#        [last, fi] = self.getname(nameBoxes)
+        fullName = name
+        # dis-ambiguate name
+        #=======================================================================
+        # dup = 2
+        # while fullName in test.byName:
+        #     fullName = fullName + '(' + str(dup) + ')'
+        #     dup += 1
+        #=======================================================================
+        test.questionnaire.fullName = fullName
+        test.questionnaire.quality = quality
+        test.questionnaire.score = 0
+        test.questionnaire.answers = []
+    #    test.names.append(fullName)
+        test.byName[fullName] = {'answers':[], 'marked_answer':[], 'quality':quality, 'score':0, 'page_index':test.index, 'name edited':True }
+    #        test.ByName[fullName] = quality
+        while len(questionBoxes) >= 5:
+            answer = ''
+            for ans in list('abcde'):
+                if questionBoxes.pop(0):
+                    answer += ans  # there may be more than one correct answer to a question
+            if answer == '':  # no answer was given
+                answer = '-'
+                test.byName[fullName][quality] = quality - 1
+            if len(answer) > 1:
+                test.byName[fullName]['quality'] = quality - 1
+            test.byName[fullName]['answers'].append(answer)
+            test.questionnaire.answers.append(answer)
+        return fullName
+            
     def score(self):
         """
         score all sheets in the test
@@ -269,13 +332,18 @@ class Grades(object):
         for name in test.byName:
             if test.byName[name]['page_index'] == page_number + 1:
                 test.index = page_number + 1
-                del test.byName[name]
-                name = self.gettest_name_answers()
+                if test.byName[name]['name edited']:
+                    name = self.gettest_answers(name)
+                else:
+                    del test.byName[name]
+                    name = self.gettest_name_answers()
                 score = self.score_by_name(name)
                 name_store = shared.provider.main_window.name_store
                 name_iter = shared.provider.main_window.name_store_byPage[page_number]
                 name_store[name_iter][0] = name
                 name_store[name_iter][1] = score
+                name_store[name_iter][2] = '{:.2f}'.format(test.byName[name]['quality'])
+                test.names[page_number] = name
                 break
 
         if name == 'answe r':  #  answer key changed - rescore all test sheets
@@ -286,8 +354,32 @@ class Grades(object):
                 name_iter = shared.provider.main_window.name_store_byPage[page_number]
 #                name_store[name_iter][0] = name
                 name_store[name_iter][1] = test.byName[name]['score']                
+                name_store[name_iter][2] = '{:.2f}'.format(test.byName[name]['quality'])               
         return
 
+    def newname_by_page(self, newname, page_number):
+        """
+        rename one sheet in the test
+        """
+        test = self.test
+        # dis-ambiguate name
+        dup = 2
+        while newname in test.byName:
+            newname = newname + '(' + str(dup) + ')'
+            dup += 1
+        for name in test.byName:
+            if test.byName[name]['page_index'] == page_number:
+                test.index = page_number
+                test.byName[newname] = {}
+                for key in test.byName[name]:
+                    test.byName[newname][key] = test.byName[name][key]
+                del test.byName[name]
+                test.byName[newname]['name edited'] = True
+                test.questionnaire.fullName = newname
+                test.names[page_number - 1] = newname
+                return newname
+
+    
 class Provider(object):
 
     def __init__(self, survey, filter, by_quality=False):
@@ -430,6 +522,8 @@ class GradeSetupWindow(object):
         self.scanfile_choose_button = self._builder.get_object("scanfile_chooser_button")
 
         self.project_choose_button = self._builder.get_object("project_chooser_button")
+        
+        self.begin_button = self._builder.get_object("begin")
 
         Gtk.main()
         
@@ -570,10 +664,25 @@ class GradeSetupWindow(object):
         grades = Grades(test)
         shared.grades = grades
         grades.test_dir = self.test_dir #  so we know where a future pdf/csv file might go
+
         for page in range(1, len(test.sheets)):
             test.index = page
-            grades.gettest_name_answers()            
+            grades.gettest_name_answers()
+        try:
+            os.stat(self.test_dir + '/grades.extra')
+            extra_file = open(self.test_dir + '/grades.extra', "rb")
+            saved_byName = {}
+            for name in test.names: 
+                saved_name = pickle.load(extra_file)
+                saved_byName[saved_name] = pickle.load(extra_file)
+            if len(saved_byName) + 1 == len(test.sheets):  # sanity check - boy the indexing is screwed up
+                for name in saved_byName:
+                    if saved_byName[name]['name edited']:
+                        grades.newname_by_page(name, saved_byName[name]['page_index'])
+        except:
+            pass
         grades.score()
+
         self._window.destroy()
         gui(test, grades)
 
@@ -648,9 +757,13 @@ class GradeSetupWindow(object):
             test = model.survey.Survey.load(self.test_dir)
             grades = Grades(test)
             shared.grades = grades
-            for page in range(1, len(test.sheets)):
-                test.index = page
-                grades.gettest_name_answers(test)
+            try:
+                os.stat(self.test_dir + '/grades.extra')
+                grades.test.byName = pickle.load(open(self.test_dir + '/grades.extra', "rb"))
+            except:
+                for page in range(1, len(test.sheets)):
+                    test.index = page
+                    grades.gettest_name_answers(test)
         except:
             # new project
             if self.test_dir == None or self.scan_file == None :
@@ -678,11 +791,15 @@ class GradeSetupWindow(object):
             # find checkmarks on each page and collect the names and answers
             for page in range(num_pages):
                 test.index = page + 1
+                self.begin_button.set_label('Page: ' + str(page))
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
                 test.questionnaire.recognize.recognize()
                 grades.gettest_name_answers()
         grades.test_dir = self.test_dir
         # score the test
         grades.score()
+        test.save()
         self._window.destroy()
         # open the correction/verification window
         gui(test, grades)
@@ -698,6 +815,7 @@ class GradeSetupWindow(object):
     def run(self):
         self._window.show()
         Gtk.main()
+
 
 
 class MainWindow(object):
@@ -797,6 +915,8 @@ class MainWindow(object):
         self.nameSelect.connect("changed", self.nameSelectionChanged)
         
         rendererText = Gtk.CellRendererText()
+        rendererText.set_property('editable',True)
+        rendererText.connect('edited', self.name_edited)
         column = Gtk.TreeViewColumn("Name", rendererText, text=0)
         column.set_sort_column_id(0)
         self.name_store.set_sort_func(0, self.sort_names, None)
@@ -855,11 +975,19 @@ class MainWindow(object):
         savepdfcsv.csv_filename = shared.configs["csv directory"] + '/grades.csv'
     
         self.sheet.props.zoom = float(shared.configs['zoom'])
-        self.save_project()
+#        self.save_project()
         shared.project_saved = True
         self.update_ui()
         return
-
+    
+#===============================================================================
+# called when name is edited manually (not using checkboxes)
+#===============================================================================
+    def name_edited(self, renderer, path, new_text):
+        current_name = self.name_store[path][0]
+        if current_name != new_text:
+            self.name_store[path][0] = shared.grades.newname_by_page(new_text, int(self.name_store[path][3]))
+        
 #============================================================================
 # custom sort function keeps the answer key at the top
 #============================================================================
@@ -877,6 +1005,9 @@ class MainWindow(object):
             if name2 == 'answe r': return -1
         value1 = tree.get_value(row1, sort_column)
         value2 = tree.get_value(row2, sort_column)
+        if sort_column == 2 and type(value1) == str:
+            value1 = float(value1)
+            value2 = float(value2)
         if value1 < value2:
             return -1
         elif value1 == value2:
@@ -961,7 +1092,6 @@ class MainWindow(object):
             name = model[index][0]
             # image pages start at 0 and test pages start at 1
             newpage = self.provider.survey.byName[name]['page_index'] - 1
-
             self.go_to_page(newpage)
             
     def zoom_in(self, *args):
@@ -1115,6 +1245,12 @@ class MainWindow(object):
     def save_project(self, *args):
         shared.project_saved = True
         self.provider.survey.save()
+        extra_file = open(shared.grades.test_dir + '/grades.extra', "wb")
+#        index = 0
+        for name in shared.grades.test.names:
+#            index += 1
+            pickle.dump(name, extra_file)
+            pickle.dump(shared.grades.test.byName[name], extra_file)
         # save the config file
         shared.configs['zoom'] = self.sheet.props.zoom
         """

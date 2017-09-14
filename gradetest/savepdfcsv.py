@@ -30,6 +30,7 @@ csv_filename = None
 supporting_info = ""
 name_store = None
 do_pdf = True
+pageinfo = "test"
 
 def save():
     if do_pdf :
@@ -38,12 +39,20 @@ def save():
         savecsv()   
     return
     
+def pdfPageFooter(canvas, document):
+#    pageinfo = 'Scanfile: ' + shared.test_scanfile + ' - Date scanned: ' + str(shared.scan_date)
+    canvas.saveState()
+    canvas.drawString(inch, 0.75 * inch, "Page %d %s" % (document.page, pageinfo))
+    canvas.restoreState()
+    
 def savepdf():
+    global pageinfo
     if os.path.exists(pdf_filename):
         overwrite = shared.popup_yesno(shared.mainwindow, pdf_filename + ' exists, overwrite?')
         if overwrite != Gtk.ResponseType.YES:
             return        
     supporting_info_print = re.sub('\n', '<br/>', supporting_info)
+    pageinfo = 'Scanfile: ' + shared.test_scanfile + ' - Date scanned: ' + str(shared.scan_date)
     doc = platypus.SimpleDocTemplate(pdf_filename)
     content = [platypus.Spacer(1,0.1*inch)]
     style = getSampleStyleSheet()["Normal"]
@@ -71,7 +80,7 @@ def savepdf():
     
     scoresTable = Table(scores_table_data, style = [('GRID',(0,0),(-1,-1),1,colors.gray)])
     content.append(scoresTable)
-    doc.build(content)
+    doc.build(content, onFirstPage=pdfPageFooter, onLaterPages=pdfPageFooter)
     return
 
 def savecsv():
